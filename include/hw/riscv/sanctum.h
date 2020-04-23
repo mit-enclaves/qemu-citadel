@@ -25,6 +25,7 @@ typedef struct {
 
     /*< public >*/
     RISCVHartArrayState soc;
+    DeviceState *plic;
     void *fdt;
     int fdt_size;
 } SanctumState;
@@ -34,12 +35,31 @@ enum {
     SANCTUM_PUF,
     SANCTUM_ELFLD,
     SANCTUM_CLINT,
+    SANCTUM_PLIC,
+    SANCTUM_VIRTIO,
     SANCTUM_DRAM
 };
 
 enum {
-    SANCTUM_CLOCK_FREQ = 1000000000
+    SANCTUM_CLOCK_FREQ = 1250000000,
+    VIRTIO_IRQ = 1, /* 1 to 8 */
+    VIRTIO_COUNT = 8,
+    VIRTIO_NDEV = 0x35, /* Arbitrary maximum number of interrupts */
 };
+
+#define SANCTUM_PLIC_HART_CONFIG "MS"
+#define SANCTUM_PLIC_NUM_SOURCES 127
+#define SANCTUM_PLIC_NUM_PRIORITIES 7
+#define SANCTUM_PLIC_PRIORITY_BASE 0x0
+#define SANCTUM_PLIC_PENDING_BASE 0x1000
+#define SANCTUM_PLIC_ENABLE_BASE 0x2000
+#define SANCTUM_PLIC_ENABLE_STRIDE 0x80
+#define SANCTUM_PLIC_CONTEXT_BASE 0xC000000
+#define SANCTUM_PLIC_CONTEXT_STRIDE 0x1000
+
+#define FDT_PLIC_ADDR_CELLS   0
+#define FDT_PLIC_INT_CELLS    1
+#define FDT_INT_MAP_WIDTH     (1 + FDT_PLIC_ADDR_CELLS + FDT_PLIC_INT_CELLS)
 
 #define SANCTUM_CPU TYPE_RISCV_CPU_RV64GCSU_V1_10_0
 

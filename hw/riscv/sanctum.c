@@ -37,6 +37,7 @@
 #include "hw/riscv/puf.h"
 #include "hw/riscv/riscv_htif.h"
 #include "hw/riscv/riscv_hart.h"
+#include "hw/riscv/sifive_plic.h"
 #include "hw/riscv/sifive_clint.h"
 #include "hw/riscv/sanctum.h"
 #include "chardev/char.h"
@@ -55,14 +56,16 @@ static const struct MemmapEntry {
     [SANCTUM_PUF] =      {   0x200000,       0x20 },
     [SANCTUM_ELFLD] =    {  0x1000000,     0x1000 },
     [SANCTUM_CLINT] =    {  0x2000000,    0x10000 },
-    [SANCTUM_DRAM] =     { 0x80000000, 0xA0000000 },
+    [SANCTUM_PLIC] =     {  0xc000000,  0x4000000 },
+    [SANCTUM_VIRTIO] =   { 0x20001000,     0x1000 * VIRTIO_COUNT },
+    [SANCTUM_DRAM] =     { 0x80000000, 0x80000000 },
 };
 
 static uint64_t load_kernel(const char *kernel_filename)
 {
     uint64_t kernel_entry, kernel_high;
 
-    if (load_elf_ram_sym(kernel_filename, NULL, NULL, NULL,
+    if (load_elf_ram_sym(kernel_filename, NULL, NULL,
             &kernel_entry, NULL, &kernel_high, 0, EM_RISCV, 1, 0,
             NULL, true, htif_symbol_callback) < 0) {
         error_report("could not load kernel '%s'", kernel_filename);
@@ -78,6 +81,8 @@ static void create_fdt(SanctumState *s, const struct MemmapEntry *memmap,
     int cpu;
     uint32_t *cells;
     char *nodename;
+    uint32_t plic_phandle, phandle = 1;
+    int i;
 
     fdt = s->fdt = create_device_tree(&s->fdt_size);
     if (!fdt) {
@@ -138,6 +143,56 @@ static void create_fdt(SanctumState *s, const struct MemmapEntry *memmap,
         g_free(nodename);
     }
 
+    {
+        plic_phandle = phandle++;
+        cells =  g_new0(uint32_t, s->soc.num_harts * 4);
+        for (cpu = 0; cpu < s->soc.num_harts; cpu++) {
+            nodename =
+                g_strdup_printf("/cpus/cpu@%d/interrupt-controller", cpu);
+            uint32_t intc_phandle = qemu_fdt_get_phandle(fdt, nodename);
+            cells[cpu * 4 + 0] = cpu_to_be32(intc_phandle);
+            cells[cpu * 4 + 1] = cpu_to_be32(IRQ_M_EXT);
+            cells[cpu * 4 + 2] = cpu_to_be32(intc_phandle);
+            cells[cpu * 4 + 3] = cpu_to_be32(IRQ_S_EXT);
+            g_free(nodename);
+        }
+        nodename = g_strdup_printf("/soc/interrupt-controller@%lx",
+                                   (long)memmap[SANCTUM_PLIC].base);
+        qemu_fdt_add_subnode(fdt, nodename);
+        qemu_fdt_setprop_cells(fdt, nodename, "#address-cells",
+                               FDT_PLIC_ADDR_CELLS);
+        qemu_fdt_setprop_cell(fdt, nodename, "#interrupt-cells",
+                              FDT_PLIC_INT_CELLS);
+        qemu_fdt_setprop_string(fdt, nodename, "compatible", "riscv,plic0");
+        qemu_fdt_setprop(fdt, nodename, "interrupt-controller", NULL, 0);
+        qemu_fdt_setprop(fdt, nodename, "interrupts-extended",
+                         cells, s->soc.num_harts * sizeof(uint32_t) * 4);
+        qemu_fdt_setprop_cells(fdt, nodename, "reg",
+                               0x0, memmap[SANCTUM_PLIC].base,
+                               0x0, memmap[SANCTUM_PLIC].size);
+        qemu_fdt_setprop_string(fdt, nodename, "reg-names", "control");
+        qemu_fdt_setprop_cell(fdt, nodename, "riscv,max-priority", 7);
+        qemu_fdt_setprop_cell(fdt, nodename, "riscv,ndev", VIRTIO_NDEV);
+        qemu_fdt_setprop_cells(fdt, nodename, "phandle", plic_phandle);
+        qemu_fdt_setprop_cells(fdt, nodename, "linux,phandle", plic_phandle);
+        plic_phandle = qemu_fdt_get_phandle(fdt, nodename);
+        g_free(cells);
+        g_free(nodename);
+    }
+
+    for (i = 0; i < VIRTIO_COUNT; i++) {
+        nodename = g_strdup_printf("/virtio_mmio@%lx",
+            (long)(memmap[SANCTUM_VIRTIO].base + i * memmap[SANCTUM_VIRTIO].size));
+        qemu_fdt_add_subnode(fdt, nodename);
+        qemu_fdt_setprop_string(fdt, nodename, "compatible", "virtio,mmio");
+        qemu_fdt_setprop_cells(fdt, nodename, "reg",
+            0x0, memmap[SANCTUM_VIRTIO].base + i * memmap[SANCTUM_VIRTIO].size,
+            0x0, memmap[SANCTUM_VIRTIO].size);
+        qemu_fdt_setprop_cells(fdt, nodename, "interrupt-parent", plic_phandle);
+        qemu_fdt_setprop_cells(fdt, nodename, "interrupts", VIRTIO_IRQ + i);
+        g_free(nodename);
+    }
+
     cells =  g_new0(uint32_t, s->soc.num_harts * 4);
     for (cpu = 0; cpu < s->soc.num_harts; cpu++) {
         nodename =
@@ -176,13 +231,15 @@ static void sanctum_board_init(MachineState *machine)
     MemoryRegion *main_mem = g_new(MemoryRegion, 1);
     MemoryRegion *mask_rom = g_new(MemoryRegion, 1);
     MemoryRegion *elfld_rom = g_new(MemoryRegion, 1);
+    char *plic_hart_config;
+    size_t plic_hart_config_len;
     int i;
 
     /* Ensure the requested configuration is legal for Sanctum */
     assert(TARGET_RISCV64);
     assert(PGSHIFT == 12);
     assert (machine->ram_size == 0x80000000); // Due to hacks on hacks on hack emulator is only defined for a machine with 2GB DRAM and 64 "regions" for enclave isolation.
-    unsigned int smp_cpus = machine->smp.cpus;
+
     /* Initialize SOC */
     object_initialize_child(OBJECT(machine), "soc", &s->soc, sizeof(s->soc),
                             TYPE_RISCV_HART_ARRAY, &error_abort, NULL);
@@ -266,6 +323,17 @@ static void sanctum_board_init(MachineState *machine)
                           memmap[SANCTUM_MROM].base + reset_vec_size,
                           &address_space_memory);
 
+    /* create PLIC hart topology configuration string */
+    plic_hart_config_len = (strlen(SANCTUM_PLIC_HART_CONFIG) + 1) * smp_cpus;
+    plic_hart_config = g_malloc0(plic_hart_config_len);
+    for (i = 0; i < smp_cpus; i++) {
+        if (i != 0) {
+            strncat(plic_hart_config, ",", plic_hart_config_len);
+        }
+        strncat(plic_hart_config, SANCTUM_PLIC_HART_CONFIG, plic_hart_config_len);
+        plic_hart_config_len -= (strlen(SANCTUM_PLIC_HART_CONFIG) + 1);
+    }
+
     /* PUF */
     puf_create(memmap[SANCTUM_PUF].base, memmap[SANCTUM_PUF].size,
                0xDEADBEEFABADCAFEL);
@@ -282,6 +350,24 @@ static void sanctum_board_init(MachineState *machine)
 
     /* initialize HTIF using symbols found in load_kernel */
     htif_mm_init(system_memory, mask_rom, &s->soc.harts[0].env, serial_hd(0));
+
+    s->plic = sifive_plic_create(memmap[SANCTUM_PLIC].base,
+        plic_hart_config,
+        SANCTUM_PLIC_NUM_SOURCES,
+        SANCTUM_PLIC_NUM_PRIORITIES,
+        SANCTUM_PLIC_PRIORITY_BASE,
+        SANCTUM_PLIC_PENDING_BASE,
+        SANCTUM_PLIC_ENABLE_BASE,
+        SANCTUM_PLIC_ENABLE_STRIDE,
+        SANCTUM_PLIC_CONTEXT_BASE,
+        SANCTUM_PLIC_CONTEXT_STRIDE,
+        memmap[SANCTUM_PLIC].size);
+
+    for (i = 0; i < VIRTIO_COUNT; i++) {
+        sysbus_create_simple("virtio-mmio",
+            memmap[SANCTUM_VIRTIO].base + i * memmap[SANCTUM_VIRTIO].size,
+            qdev_get_gpio_in(DEVICE(s->plic), VIRTIO_IRQ + i));
+    }
 
     /* Core Local Interruptor (timer and IPI) */
     sifive_clint_create(memmap[SANCTUM_CLINT].base, memmap[SANCTUM_CLINT].size,
