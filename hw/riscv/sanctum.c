@@ -234,12 +234,14 @@ static void sanctum_board_init(MachineState *machine)
     char *plic_hart_config;
     size_t plic_hart_config_len;
     int i;
+//    int smp_cpus = 1; //TODO why not soc.num_hart
 
     /* Ensure the requested configuration is legal for Sanctum */
     assert(TARGET_RISCV64);
     assert(PGSHIFT == 12);
     assert (machine->ram_size == 0x80000000); // Due to hacks on hacks on hack emulator is only defined for a machine with 2GB DRAM and 64 "regions" for enclave isolation.
 
+    unsigned int smp_cpus = machine->smp.cpus;
     /* Initialize SOC */
     object_initialize_child(OBJECT(machine), "soc", &s->soc, sizeof(s->soc),
                             TYPE_RISCV_HART_ARRAY, &error_abort, NULL);
