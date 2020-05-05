@@ -21,6 +21,7 @@
 #include "qemu/log.h"
 #include "qemu/timer.h"
 #include "cpu.h"
+#include "trng.h"
 #include "tcg/tcg-cpu.h"
 #include "pmu.h"
 #include "time_helper.h"
@@ -3851,6 +3852,126 @@ static RISCVException write_pmpaddr(CPURISCVState *env, int csrno,
     return RISCV_EXCP_NONE;
 }
 
+// <SANCTUM>
+/* Sanctum Core Configuration */
+
+static int read_mevbase(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mevbase;
+    return 0;
+}
+
+static int write_mevbase(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->mevbase = val;
+    return 0;
+}
+
+static int read_mevmask(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mevmask;
+    return 0;
+}
+
+static int write_mevmask(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->mevmask = val;
+    return 0;
+}
+
+static int read_meatp(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->meatp;
+    return 0;
+}
+
+static int write_meatp(CPURISCVState *env, int csrno, target_ulong val)
+{
+    tlb_flush(env_cpu(env));
+    env->meatp = val;
+    return 0;
+}
+
+static int read_mmrbm(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mmrbm;
+    return 0;
+}
+
+static int write_mmrbm(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->mmrbm = val;
+    return 0;
+}
+
+static int read_memrbm(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->memrbm;
+    return 0;
+}
+
+static int write_memrbm(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->memrbm = val;
+    return 0;
+}
+
+static int read_mparbase(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mparbase;
+    return 0;
+}
+
+static int write_mparbase(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->mparbase = val;
+    return 0;
+}
+
+static int read_mparmask(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mparmask;
+    return 0;
+}
+
+static int write_mparmask(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->mparmask = val;
+    return 0;
+}
+
+static int read_meparbase(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->meparbase;
+    return 0;
+}
+
+static int write_meparbase(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->meparbase = val;
+    return 0;
+}
+
+static int read_meparmask(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->meparmask;
+    return 0;
+}
+
+static int write_meparmask(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->meparmask = val;
+    return 0;
+}
+
+/* TRNG */
+static int read_trng(CPURISCVState *env, int csrno, target_ulong *val)
+{
+   *val = trng();
+   return 0;
+}
+// <SANCTUM>
+
 static RISCVException read_tselect(CPURISCVState *env, int csrno,
                                    target_ulong *val)
 {
@@ -4793,6 +4914,18 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_PMPADDR14] =  { "pmpaddr14", pmp, read_pmpaddr, write_pmpaddr },
     [CSR_PMPADDR15] =  { "pmpaddr15", pmp, read_pmpaddr, write_pmpaddr },
 
+    
+    /* Sanctum Core Configuration */
+    [CSR_MEVBASE] =             { any,  read_mevbase,     write_mevbase      },
+    [CSR_MEVMASK] =             { any,  read_mevmask,     write_mevmask      },
+    [CSR_MEATP] =               { any,  read_meatp,       write_meatp        },
+    [CSR_MMRBM] =               { any,  read_mmrbm,       write_mmrbm        },
+    [CSR_MEMRBM] =              { any,  read_memrbm,      write_memrbm       },
+    [CSR_MPARBASE] =            { any,  read_mparbase,    write_mparbase     },
+    [CSR_MPARMASK] =            { any,  read_mparmask,    write_mparmask     },
+    [CSR_MEPARBASE] =           { any,  read_meparbase,   write_meparbase    },
+    [CSR_MEPARMASK] =           { any,  read_meparmask,   write_meparmask    },
+
     /* Debug CSRs */
     [CSR_TSELECT]   =  { "tselect", debug, read_tselect, write_tselect },
     [CSR_TDATA1]    =  { "tdata1",  debug, read_tdata,   write_tdata   },
@@ -5150,6 +5283,9 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
                              write_mhpmcounterh                         },
     [CSR_SCOUNTOVF]      = { "scountovf", sscofpmf,  read_scountovf,
                              .min_priv_ver = PRIV_VERSION_1_12_0 },
+
+    /* TRNG */
+    [CSR_TRNG] =                { any,   read_trng,                          },
 
 #endif /* !CONFIG_USER_ONLY */
 };
