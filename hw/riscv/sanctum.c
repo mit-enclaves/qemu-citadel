@@ -120,6 +120,9 @@ static void create_fdt(SanctumState *s, const struct MemmapEntry *memmap,
     qemu_fdt_setprop_cell(fdt, "/cpus", "#address-cells", 0x1);
 
     for (cpu = s->soc.num_harts - 1; cpu >= 0; cpu--) {
+
+        int cpu_phandle = phandle++;
+        int intc_phandle;
         nodename = g_strdup_printf("/cpus/cpu@%d", cpu);
         char *intc = g_strdup_printf("/cpus/cpu@%d/interrupt-controller", cpu);
         char *isa = riscv_isa_string(&s->soc.harts[cpu]);
@@ -132,9 +135,12 @@ static void create_fdt(SanctumState *s, const struct MemmapEntry *memmap,
         qemu_fdt_setprop_string(fdt, nodename, "status", "okay");
         qemu_fdt_setprop_cell(fdt, nodename, "reg", cpu);
         qemu_fdt_setprop_string(fdt, nodename, "device_type", "cpu");
+        qemu_fdt_setprop_cell(fdt, nodename, "phandle", cpu_phandle);
+        qemu_fdt_setprop_cell(fdt, nodename, "linux,phandle", cpu_phandle);
+        intc_phandle = phandle++;
         qemu_fdt_add_subnode(fdt, intc);
-        qemu_fdt_setprop_cell(fdt, intc, "phandle", 1);
-        qemu_fdt_setprop_cell(fdt, intc, "linux,phandle", 1);
+        qemu_fdt_setprop_cell(fdt, intc, "phandle", intc_phandle);
+        qemu_fdt_setprop_cell(fdt, intc, "linux,phandle", intc_phandle);
         qemu_fdt_setprop_string(fdt, intc, "compatible", "riscv,cpu-intc");
         qemu_fdt_setprop(fdt, intc, "interrupt-controller", NULL, 0);
         qemu_fdt_setprop_cell(fdt, intc, "#interrupt-cells", 1);
@@ -234,7 +240,6 @@ static void sanctum_board_init(MachineState *machine)
     char *plic_hart_config;
     size_t plic_hart_config_len;
     int i;
-//    int smp_cpus = 1; //TODO why not soc.num_hart
 
     /* Ensure the requested configuration is legal for Sanctum */
     assert(TARGET_RISCV64);
@@ -364,6 +369,8 @@ static void sanctum_board_init(MachineState *machine)
         SANCTUM_PLIC_CONTEXT_BASE,
         SANCTUM_PLIC_CONTEXT_STRIDE,
         memmap[SANCTUM_PLIC].size);
+    sifive_clint_create(memmap[SANCTUM_CLINT].base, memmap[SANCTUM_CLINT].size,
+        smp_cpus, SIFIVE_SIP_BASE, SIFIVE_TIMECMP_BASE, SIFIVE_TIME_BASE);
 
     for (i = 0; i < VIRTIO_COUNT; i++) {
         sysbus_create_simple("virtio-mmio",
@@ -371,9 +378,8 @@ static void sanctum_board_init(MachineState *machine)
             qdev_get_gpio_in(DEVICE(s->plic), VIRTIO_IRQ + i));
     }
 
+    g_free(plic_hart_config);
     /* Core Local Interruptor (timer and IPI) */
-    sifive_clint_create(memmap[SANCTUM_CLINT].base, memmap[SANCTUM_CLINT].size,
-        smp_cpus, SIFIVE_SIP_BASE, SIFIVE_TIMECMP_BASE, SIFIVE_TIME_BASE);
 }
 
 static void sanctum_machine_init(MachineClass *mc)
