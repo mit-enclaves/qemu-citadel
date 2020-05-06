@@ -33,6 +33,7 @@
 #include "hw/boards.h"
 #include "hw/loader.h"
 #include "hw/sysbus.h"
+#include "hw/char/serial.h"
 #include "target/riscv/cpu.h"
 #include "hw/riscv/puf.h"
 #include "hw/riscv/riscv_htif.h"
@@ -56,6 +57,7 @@ static const struct MemmapEntry {
     [SANCTUM_PUF] =      {   0x200000,       0x20 },
     [SANCTUM_ELFLD] =    {  0x1000000,     0x1000 },
     [SANCTUM_CLINT] =    {  0x2000000,    0x10000 },
+    [SANCTUM_UART0] =       {  0x3000000,         0x100 },
     [SANCTUM_PLIC] =     {  0xc000000,  0x4000000 },
     [SANCTUM_VIRTIO] =   { 0x20001000,     0x1000 },// * VIRTIO_COUNT },
     [SANCTUM_DRAM] =     { 0x80000000, 0x80000000 },
@@ -221,6 +223,17 @@ static void create_fdt(SanctumState *s, const struct MemmapEntry *memmap,
         cells, s->soc.num_harts * sizeof(uint32_t) * 4);
     g_free(cells);
     g_free(nodename);
+    nodename = g_strdup_printf("/uart@%lx",
+        (long)memmap[SANCTUM_UART0].base);
+    qemu_fdt_add_subnode(fdt, nodename);
+    qemu_fdt_setprop_string(fdt, nodename, "compatible", "ns16550a");
+    qemu_fdt_setprop_cells(fdt, nodename, "reg",
+        0x0, memmap[SANCTUM_UART0].base,
+        0x0, memmap[SANCTUM_UART0].size);
+    qemu_fdt_setprop_cell(fdt, nodename, "clock-frequency", 3686400);
+        qemu_fdt_setprop_cells(fdt, nodename, "interrupt-parent", plic_phandle);
+        qemu_fdt_setprop_cells(fdt, nodename, "interrupts", UART0_IRQ);
+
 
     if (cmdline) {
         qemu_fdt_add_subnode(fdt, "/chosen");
@@ -377,6 +390,10 @@ static void sanctum_board_init(MachineState *machine)
             memmap[SANCTUM_VIRTIO].base + i * memmap[SANCTUM_VIRTIO].size,
             qdev_get_gpio_in(DEVICE(s->plic), VIRTIO_IRQ + i));
     }
+
+    serial_mm_init(system_memory, memmap[SANCTUM_UART0].base,
+    0, qdev_get_gpio_in(DEVICE(s->plic), UART0_IRQ), 399193,
+    serial_hd(0), DEVICE_LITTLE_ENDIAN);
 
     g_free(plic_hart_config);
     /* Core Local Interruptor (timer and IPI) */
