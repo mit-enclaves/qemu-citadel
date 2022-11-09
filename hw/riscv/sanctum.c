@@ -403,7 +403,7 @@ static void sanctum_machine_init(MachineClass *mc)
 {
     mc->desc = "RISC-V Sanctum Board";
     mc->init = sanctum_board_init;
-    mc->max_cpus = 1;
+    mc->max_cpus = 2;
     mc->is_default = 1;
 }
 
