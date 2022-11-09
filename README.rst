@@ -54,8 +54,8 @@ of other UNIX targets. The simple steps to build QEMU are:
 
   mkdir build
   cd build
-  ../configure
-  make
+  ../configure --target-list=riscv64-softmmu
++  make -j8
 
 Additional information can also be found online via the QEMU website:
 
