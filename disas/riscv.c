@@ -2213,6 +2213,22 @@ static const char *csr_name(int csrno)
     case 0x07b0: return "dcsr";
     case 0x07b1: return "dpc";
     case 0x07b2: return "dscratch";
+    // <RISCY_OOO>
+    case 0x0801: return "stats";
+    // </RISCY_OOO> 
+    // <SANCTUM>
+    case 0x07c0: return "mevbase";
+    case 0x07c1: return "mevmask";
+    case 0x07c2: return "meatp";
+    case 0x07c3: return "mmrbm";
+    case 0x07c4: return "memrbm";
+    case 0x07c5: return "mparbase";
+    case 0x07c6: return "mparmask";
+    case 0x07c7: return "meparbase";
+    case 0x07c8: return "meparmask";
+    case 0x07c9: return "mflush";
+    case 0x07ca: return "mspec";
+    // </SANCTUM>
     case 0x0b00: return "mcycle";
     case 0x0b01: return "mtime";
     case 0x0b02: return "minstret";
@@ -2286,6 +2302,9 @@ static const char *csr_name(int csrno)
     case 0x0c80: return "cycleh";
     case 0x0c81: return "timeh";
     case 0x0c82: return "instreth";
+    // <SANCTUM>
+    case 0x0cc0: return "trng";
+    // </SANCTUM>
     case 0x0d00: return "scycle";
     case 0x0d01: return "stime";
     case 0x0d02: return "sinstret";

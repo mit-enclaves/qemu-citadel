@@ -411,7 +411,15 @@
 #define CSR_MPARMASK 0x7c6
 #define CSR_MEPARBASE 0x7c7
 #define CSR_MEPARMASK 0x7c8
+
+// ### Protection side channels
+#define CSR_MFLUSH 0x7c9
+#define CSR_MSPEC  0x7ca
 // </SANCTUM>
+
+// <RISCY_OO>
+#define CSR_STATS           0x801
+// </RISCY_OO>
 
 /* Performance Counters */
 #define CSR_MHPMCOUNTER3    0xb03

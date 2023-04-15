@@ -275,6 +275,9 @@ struct CPUArchState {
     uint64_t mscratchh;
     uint64_t sscratchh;
 
+    // <RISCY_OO>
+    target_ulong stats;
+    // <\RISCY_OO>
 
     // <SANCTUM>
     // ## The core state referenced by various CSRs (registers) introduced by Sanctum is declared here.
@@ -310,6 +313,10 @@ struct CPUArchState {
     target_ulong mparmask;
     target_ulong meparbase;
     target_ulong meparmask;
+
+    // ### Protection side channels
+    target_ulong mflush;
+    target_ulong mspec;
     // </SANCTUM>
 
     /* Virtual CSRs */

@@ -3852,6 +3852,20 @@ static RISCVException write_pmpaddr(CPURISCVState *env, int csrno,
     return RISCV_EXCP_NONE;
 }
 
+// <RISCY_OO>
+static int read_stats(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->stats;
+    return 0;
+}
+
+static int write_stats(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->stats = val;
+    return 0;
+}
+// </RISCY_OO>
+
 // <SANCTUM>
 /* Sanctum Core Configuration */
 
@@ -3961,6 +3975,30 @@ static int read_meparmask(CPURISCVState *env, int csrno, target_ulong *val)
 static int write_meparmask(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->meparmask = val;
+    return 0;
+}
+
+static int read_mflush(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mflush;
+    return 0;
+}
+
+static int write_mflush(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->mflush = val;
+    return 0;
+}
+
+static int read_mspec(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mspec;
+    return 0;
+}
+
+static int write_mspec(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->mspec = val;
     return 0;
 }
 
@@ -4914,7 +4952,9 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_PMPADDR14] =  { "pmpaddr14", pmp, read_pmpaddr, write_pmpaddr },
     [CSR_PMPADDR15] =  { "pmpaddr15", pmp, read_pmpaddr, write_pmpaddr },
 
-    
+    /* Riscy-OO Stat Collection */
+    [CSR_STATS] =               { any,  read_stats,       write_stats        },
+
     /* Sanctum Core Configuration */
     [CSR_MEVBASE] =             { any,  read_mevbase,     write_mevbase      },
     [CSR_MEVMASK] =             { any,  read_mevmask,     write_mevmask      },
@@ -4925,6 +4965,8 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_MPARMASK] =            { any,  read_mparmask,    write_mparmask     },
     [CSR_MEPARBASE] =           { any,  read_meparbase,   write_meparbase    },
     [CSR_MEPARMASK] =           { any,  read_meparmask,   write_meparmask    },
+    [CSR_MFLUSH] =              { any,  read_mflush,      write_mflush       },
+    [CSR_MSPEC] =               { any,  read_mspec,       write_mspec        },
 
     /* Debug CSRs */
     [CSR_TSELECT]   =  { "tselect", debug, read_tselect, write_tselect },
