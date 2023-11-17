@@ -2228,6 +2228,8 @@ static const char *csr_name(int csrno)
     case 0x07c8: return "meparmask";
     case 0x07c9: return "mflush";
     case 0x07ca: return "mspec";
+    case 0x0190: return "sspec";
+    case 0x0802: return "spec";
     // </SANCTUM>
     case 0x0b00: return "mcycle";
     case 0x0b01: return "mtime";

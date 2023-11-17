@@ -4002,6 +4002,30 @@ static int write_mspec(CPURISCVState *env, int csrno, target_ulong val)
     return 0;
 }
 
+static int read_sspec(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mspec;
+    return 0;
+}
+
+static int write_sspec(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->mspec = val;
+    return 0;
+}
+
+static int read_spec(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mspec;
+    return 0;
+}
+
+static int write_spec(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->mspec = val;
+    return 0;
+}
+
 /* TRNG */
 static int read_trng(CPURISCVState *env, int csrno, target_ulong *val)
 {
@@ -4967,6 +4991,8 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_MEPARMASK] =           { any,  read_meparmask,   write_meparmask    },
     [CSR_MFLUSH] =              { any,  read_mflush,      write_mflush       },
     [CSR_MSPEC] =               { any,  read_mspec,       write_mspec        },
+    [CSR_SSPEC] =               { any,  read_sspec,       write_sspec        },
+    [CSR_SPEC] =                { any,  read_spec,        write_spec         },
 
     /* Debug CSRs */
     [CSR_TSELECT]   =  { "tselect", debug, read_tselect, write_tselect },
