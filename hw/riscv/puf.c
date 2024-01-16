@@ -8,6 +8,7 @@
 #include "target/riscv/cpu.h"
 #include "hw/riscv/puf.h"
 #include "qemu/timer.h"
+#include "qapi/error.h"
 
 /* CPU wants to read the puf */
 static uint64_t puf_read(void *opaque, hwaddr addr, unsigned size)
@@ -97,7 +98,7 @@ static void puf_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     dc->realize = puf_realize;
-    dc->props = puf_properties;
+    device_class_set_props(dc, puf_properties);
 }
 
 static const TypeInfo puf_info = {
@@ -119,11 +120,11 @@ type_init(puf_register_types)
  */
 DeviceState *puf_create(hwaddr addr, hwaddr size, uint64_t persona)
 {
-    DeviceState *dev = qdev_create(NULL, TYPE_PUF);
+    DeviceState *dev = qdev_new(TYPE_PUF);
     qdev_prop_set_uint64(dev, "persona", persona);
     qdev_prop_set_uint64(dev, "puf_select", 0);
     qdev_prop_set_uint32(dev, "puf_disable", false);
-    qdev_init_nofail(dev);
+    sysbus_realize(SYS_BUS_DEVICE(dev), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, addr);
     return dev;
 }
