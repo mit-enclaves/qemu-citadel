@@ -34,14 +34,17 @@
 #include "hw/loader.h"
 #include "hw/sysbus.h"
 #include "target/riscv/cpu.h"
+#include "hw/riscv/boot.h"
 #include "hw/riscv/puf.h"
-#include "hw/riscv/riscv_htif.h"
+#include "hw/riscv/zero_device.h"
+#include "hw/char/riscv_htif.h"
 #include "hw/riscv/riscv_hart.h"
-#include "hw/riscv/sifive_clint.h"
+#include "hw/intc/riscv_aclint.h"
 #include "hw/riscv/sanctum.h"
 #include "chardev/char.h"
 #include "sysemu/arch_init.h"
 #include "sysemu/device_tree.h"
+#include "sysemu/sysemu.h"
 #include "exec/address-spaces.h"
 #include "elf.h"
 
@@ -65,7 +68,7 @@ static uint64_t load_kernel(const char *kernel_filename)
     uint64_t kernel_entry, kernel_high;
 
     if (load_elf_ram_sym(kernel_filename, NULL, NULL, NULL,
-            &kernel_entry, NULL, &kernel_high, 0, EM_RISCV, 1, 0,
+            &kernel_entry, NULL, &kernel_high, NULL, 0, EM_RISCV, 1, 0,
             NULL, true, htif_symbol_callback) < 0) {
         error_report("could not load kernel '%s'", kernel_filename);
         exit(1);
@@ -113,7 +116,7 @@ static void create_fdt(SanctumState *s, const struct MemmapEntry *memmap,
 
     qemu_fdt_add_subnode(fdt, "/cpus");
     qemu_fdt_setprop_cell(fdt, "/cpus", "timebase-frequency",
-        SIFIVE_CLINT_TIMEBASE_FREQ);
+        RISCV_ACLINT_DEFAULT_TIMEBASE_FREQ);
     qemu_fdt_setprop_cell(fdt, "/cpus", "#size-cells", 0x0);
     qemu_fdt_setprop_cell(fdt, "/cpus", "#address-cells", 0x1);
 
@@ -185,20 +188,25 @@ static void sanctum_board_init(MachineState *machine)
     MemoryRegion *llc_controller = g_new(MemoryRegion, 1);
     int i;
 
+    int base_hartid = 0;
+    int hart_count = machine->smp.cpus;
+    bool htif_custom_base = false;
+
     /* Ensure the requested configuration is legal for Sanctum */
     assert(TARGET_RISCV64);
     assert(PGSHIFT == 12);
     assert (machine->ram_size == 0x80000000); // Due to hacks on hacks on hack emulator is only defined for a machine with 2GB DRAM and 64 "regions" for enclave isolation.
 
-    unsigned int smp_cpus = machine->smp.cpus;
     /* Initialize SOC */
-    object_initialize_child(OBJECT(machine), "soc", &s->soc, sizeof(s->soc),
-                            TYPE_RISCV_HART_ARRAY, &error_abort, NULL);
-    object_property_set_str(OBJECT(&s->soc), SANCTUM_CPU, "cpu-type",
+    object_initialize_child(OBJECT(machine), "soc", &s->soc,
+                            TYPE_RISCV_HART_ARRAY);
+    object_property_set_str(OBJECT(&s->soc), "cpu-type", TYPE_SANCTUM_MACHINE,
                             &error_abort);
-    object_property_set_int(OBJECT(&s->soc), smp_cpus, "num-harts",
+    object_property_set_int(OBJECT(&s->soc), "hartid-base", base_hartid,
                             &error_abort);
-    object_property_set_bool(OBJECT(&s->soc), true, "realized",
+    object_property_set_int(OBJECT(&s->soc), "num-harts", hart_count,
+                            &error_abort);
+    object_property_set_bool(OBJECT(&s->soc), "realized", true,
                             &error_abort);
 
     /* register system main memory (actual RAM) */
@@ -298,11 +306,15 @@ static void sanctum_board_init(MachineState *machine)
                           &address_space_memory);
 
     /* initialize HTIF using symbols found in load_kernel */
-    htif_mm_init(system_memory, mask_rom, &s->soc.harts[0].env, serial_hd(0));
+    htif_mm_init(system_memory, serial_hd(0), memmap[SANCTUM_ELFLD].base, htif_custom_base);
 
     /* Core Local Interruptor (timer and IPI) */
-    sifive_clint_create(memmap[SANCTUM_CLINT].base, memmap[SANCTUM_CLINT].size,
-        smp_cpus, SIFIVE_SIP_BASE, SIFIVE_TIMECMP_BASE, SIFIVE_TIME_BASE);
+    riscv_aclint_swi_create(memmap[SANCTUM_CLINT].base, base_hartid, hart_count, false);
+    riscv_aclint_mtimer_create(
+        memmap[SANCTUM_CLINT].base + RISCV_ACLINT_SWI_SIZE,
+        RISCV_ACLINT_DEFAULT_MTIMER_SIZE, base_hartid, hart_count,
+        RISCV_ACLINT_DEFAULT_MTIMECMP, RISCV_ACLINT_DEFAULT_MTIME,
+        RISCV_ACLINT_DEFAULT_TIMEBASE_FREQ, false);
 
 }
 
