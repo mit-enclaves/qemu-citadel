@@ -50,10 +50,7 @@
 
 #include <libfdt.h>
 
-static const struct MemmapEntry {
-    hwaddr base;
-    hwaddr size;
-} sanctum_memmap[] = {
+static const MemMapEntry sanctum_memmap[] = {
     [SANCTUM_MROM] =        {      0x1000,    0x11000 },
     [SANCTUM_PUF] =         {    0x200000,       0x20 },
     [SANCTUM_ELFLD] =       {   0x1000000,     0x1000 },
@@ -76,7 +73,7 @@ static uint64_t load_kernel(const char *kernel_filename)
     return kernel_entry;
 }
 
-static void create_fdt(SanctumState *s, const struct MemmapEntry *memmap,
+static void create_fdt(SanctumState *s, const struct MemMapEntry *memmap,
     uint64_t mem_size, const char *cmdline)
 {
     void *fdt;
@@ -178,11 +175,10 @@ static void create_fdt(SanctumState *s, const struct MemmapEntry *memmap,
 
 static void sanctum_board_init(MachineState *machine)
 {
-    const struct MemmapEntry *memmap = sanctum_memmap;
+    const struct MemMapEntry *memmap = sanctum_memmap;
 
-    SanctumState *s = g_new0(SanctumState, 1);
+    SanctumState *s = SANCTUM_MACHINE(machine);
     MemoryRegion *system_memory = get_system_memory();
-    MemoryRegion *main_mem = g_new(MemoryRegion, 1);
     MemoryRegion *mask_rom = g_new(MemoryRegion, 1);
     MemoryRegion *elfld_rom = g_new(MemoryRegion, 1);
     MemoryRegion *llc_controller = g_new(MemoryRegion, 1);
@@ -200,20 +196,17 @@ static void sanctum_board_init(MachineState *machine)
     /* Initialize SOC */
     object_initialize_child(OBJECT(machine), "soc", &s->soc,
                             TYPE_RISCV_HART_ARRAY);
-    object_property_set_str(OBJECT(&s->soc), "cpu-type", TYPE_SANCTUM_MACHINE,
+    object_property_set_str(OBJECT(&s->soc), "cpu-type", machine->cpu_type,
                             &error_abort);
     object_property_set_int(OBJECT(&s->soc), "hartid-base", base_hartid,
                             &error_abort);
     object_property_set_int(OBJECT(&s->soc), "num-harts", hart_count,
                             &error_abort);
-    object_property_set_bool(OBJECT(&s->soc), "realized", true,
-                            &error_abort);
+    sysbus_realize(SYS_BUS_DEVICE(&s->soc), &error_fatal);
 
     /* register system main memory (actual RAM) */
-    memory_region_init_ram(main_mem, NULL, "riscv.sanctum.ram",
-                           machine->ram_size, &error_fatal);
     memory_region_add_subregion(system_memory, memmap[SANCTUM_DRAM].base,
-        main_mem);
+        machine->ram);
 
     /* create device tree */
     create_fdt(s, memmap, machine->ram_size, machine->kernel_cmdline);
@@ -318,12 +311,34 @@ static void sanctum_board_init(MachineState *machine)
 
 }
 
-static void sanctum_machine_init(MachineClass *mc)
+static void sanctum_machine_instance_init(Object *obj)
 {
-    mc->desc = "RISC-V Sanctum Board";
-    mc->init = sanctum_board_init;
-    mc->max_cpus = 4;
-    mc->is_default = 1;
 }
 
-DEFINE_MACHINE("sanctum", sanctum_machine_init)
+static void sanctum_machine_class_init(ObjectClass *oc, void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+
+    mc->desc = "RISC-V Sanctum board";
+    mc->init = sanctum_board_init;
+    mc->max_cpus = SANCTUM_CPUS_MAX;
+    mc->is_default = true;
+    mc->default_cpu_type = TYPE_RISCV_CPU_SANCTUM;
+    mc->default_ram_id = "riscv.sanctum.ram";
+    mc->default_ram_size = sanctum_memmap[SANCTUM_DRAM].size;
+}
+
+static const TypeInfo sanctum_machine_typeinfo = {
+    .name       = MACHINE_TYPE_NAME("sanctum"),
+    .parent     = TYPE_MACHINE,
+    .class_init = sanctum_machine_class_init,
+    .instance_init = sanctum_machine_instance_init,
+    .instance_size = sizeof(SanctumState),
+};
+
+static void sanctum_machine_init_register_types(void)
+{
+    type_register_static(&sanctum_machine_typeinfo);
+}
+
+type_init(sanctum_machine_init_register_types)

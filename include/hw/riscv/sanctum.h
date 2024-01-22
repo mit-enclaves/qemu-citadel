@@ -19,15 +19,26 @@
 #ifndef HW_RISCV_SANCTUM_H
 #define HW_RISCV_SANCTUM_H
 
-typedef struct {
+#include "hw/boards.h"
+#include "hw/riscv/riscv_hart.h"
+#include "hw/sysbus.h"
+
+#define SANCTUM_CPUS_MAX 4
+
+#define TYPE_SANCTUM_MACHINE MACHINE_TYPE_NAME("sanctum")
+typedef struct SanctumState SanctumState;
+DECLARE_INSTANCE_CHECKER(SanctumState, SANCTUM_MACHINE,
+                         TYPE_SANCTUM_MACHINE)
+
+struct SanctumState {
     /*< private >*/
-    SysBusDevice parent_obj;
+    MachineState parent;
 
     /*< public >*/
     RISCVHartArrayState soc;
     void *fdt;
     int fdt_size;
-} SanctumState;
+};
 
 enum {
     SANCTUM_MROM,
@@ -42,7 +53,5 @@ enum {
 enum {
     SANCTUM_CLOCK_FREQ = 1250000000,
 };
-
-#define TYPE_SANCTUM_MACHINE MACHINE_TYPE_NAME("sanctum")
 
 #endif
