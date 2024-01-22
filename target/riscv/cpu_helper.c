@@ -851,10 +851,10 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
             }
         } else {
             // <SANCTUM>
-            //base = get_field(env->satp, SATP_PPN) << PGSHIFT;
+            //base = get_field(env->satp, SATP64_PPN) << PGSHIFT;
             bool is_enclave_walk = ((addr & env->mevmask) == env->mevbase);
-            base = is_enclave_walk ? ( get_field(env->meatp, SATP_PPN) << PGSHIFT )
-                                : ( get_field(env->satp, SATP_PPN) << PGSHIFT );
+            base = is_enclave_walk ? ( get_field(env->meatp, SATP64_PPN) << PGSHIFT )
+                                : ( get_field(env->satp, SATP64_PPN) << PGSHIFT );
             mrbm = is_enclave_walk ? env->memrbm : env->mmrbm;
             parbase = is_enclave_walk ? env->meparbase : env->mparbase;
             parmask = is_enclave_walk ? env->meparmask : env->mparmask;
@@ -1003,7 +1003,7 @@ restart:
             ppn = (pte & (target_ulong)PTE_PPN_MASK) >> PTE_PPN_SHIFT;
         }
 
-        / <SANCTUM>
+        // <SANCTUM>
         // Check protected address region
         if ( ((ppn << PGSHIFT) & parmask) == parbase ) {
           return TRANSLATE_FAIL;

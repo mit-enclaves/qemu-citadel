@@ -3856,13 +3856,13 @@ static RISCVException write_pmpaddr(CPURISCVState *env, int csrno,
 static int read_stats(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->stats;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_stats(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->stats = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 // </RISCY_OO>
 
@@ -3872,165 +3872,165 @@ static int write_stats(CPURISCVState *env, int csrno, target_ulong val)
 static int read_mevbase(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->mevbase;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_mevbase(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->mevbase = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_mevmask(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->mevmask;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_mevmask(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->mevmask = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_meatp(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->meatp;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_meatp(CPURISCVState *env, int csrno, target_ulong val)
 {
     tlb_flush(env_cpu(env));
     env->meatp = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_mmrbm(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->mmrbm;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_mmrbm(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->mmrbm = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_memrbm(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->memrbm;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_memrbm(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->memrbm = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_mparbase(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->mparbase;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_mparbase(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->mparbase = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_mparmask(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->mparmask;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_mparmask(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->mparmask = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_meparbase(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->meparbase;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_meparbase(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->meparbase = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_meparmask(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->meparmask;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_meparmask(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->meparmask = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_mflush(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->mflush;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_mflush(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->mflush = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_mspec(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->mspec;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_mspec(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->mspec = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_sspec(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->mspec;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_sspec(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->mspec = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int read_spec(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->mspec;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 static int write_spec(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->mspec = val;
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 
 /* TRNG */
 static int read_trng(CPURISCVState *env, int csrno, target_ulong *val)
 {
    *val = trng();
-   return 0;
+   return RISCV_EXCP_NONE;
 }
 // <SANCTUM>
 
@@ -4977,22 +4977,22 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_PMPADDR15] =  { "pmpaddr15", pmp, read_pmpaddr, write_pmpaddr },
 
     /* Riscy-OO Stat Collection */
-    [CSR_STATS] =               { any,  read_stats,       write_stats        },
+    [CSR_STATS]     = { "stats",     any, read_stats,     write_stats     },
 
     /* Sanctum Core Configuration */
-    [CSR_MEVBASE] =             { any,  read_mevbase,     write_mevbase      },
-    [CSR_MEVMASK] =             { any,  read_mevmask,     write_mevmask      },
-    [CSR_MEATP] =               { any,  read_meatp,       write_meatp        },
-    [CSR_MMRBM] =               { any,  read_mmrbm,       write_mmrbm        },
-    [CSR_MEMRBM] =              { any,  read_memrbm,      write_memrbm       },
-    [CSR_MPARBASE] =            { any,  read_mparbase,    write_mparbase     },
-    [CSR_MPARMASK] =            { any,  read_mparmask,    write_mparmask     },
-    [CSR_MEPARBASE] =           { any,  read_meparbase,   write_meparbase    },
-    [CSR_MEPARMASK] =           { any,  read_meparmask,   write_meparmask    },
-    [CSR_MFLUSH] =              { any,  read_mflush,      write_mflush       },
-    [CSR_MSPEC] =               { any,  read_mspec,       write_mspec        },
-    [CSR_SSPEC] =               { any,  read_sspec,       write_sspec        },
-    [CSR_SPEC] =                { any,  read_spec,        write_spec         },
+    [CSR_MEVBASE]   = { "mevbase",   any, read_mevbase,   write_mevbase   },
+    [CSR_MEVMASK]   = { "mevmask",   any, read_mevmask,   write_mevmask   },
+    [CSR_MEATP]     = { "meatp",     any, read_meatp,     write_meatp     },
+    [CSR_MMRBM]     = { "mmrbm",     any, read_mmrbm,     write_mmrbm     },
+    [CSR_MEMRBM]    = { "memrbm",    any, read_memrbm,    write_memrbm    },
+    [CSR_MPARBASE]  = { "mparbase",  any, read_mparbase,  write_mparbase  },
+    [CSR_MPARMASK]  = { "mparmask",  any, read_mparmask,  write_mparmask  },
+    [CSR_MEPARBASE] = { "meparbase", any, read_meparbase, write_meparbase },
+    [CSR_MEPARMASK] = { "meparmask", any, read_meparmask, write_meparmask },
+    [CSR_MFLUSH]    = { "mflush",    any, read_mflush,    write_mflush    },
+    [CSR_MSPEC]     = { "mspec",     any, read_mspec,     write_mspec     },
+    [CSR_SSPEC]     = { "sspec",     any, read_sspec,     write_sspec     },
+    [CSR_SPEC]      = { "spec",      any, read_spec,      write_spec      },
 
     /* Debug CSRs */
     [CSR_TSELECT]   =  { "tselect", debug, read_tselect, write_tselect },
@@ -5353,7 +5353,7 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
                              .min_priv_ver = PRIV_VERSION_1_12_0 },
 
     /* TRNG */
-    [CSR_TRNG] =                { any,   read_trng,                          },
+    [CSR_TRNG] = { "trng", any, read_trng, },
 
 #endif /* !CONFIG_USER_ONLY */
 };
